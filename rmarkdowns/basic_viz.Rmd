@@ -33,6 +33,11 @@ library(tidyverse)
 library(here)
 library(janitor)
 library(vembedr)
+
+library(tidyverse)
+library(here)
+library(janitor)
+library(vembedr)
 ```
 
 
@@ -53,12 +58,17 @@ Next, let's read in our data and assign it to the variable `sdr_data`.
 
 ```{r, message=FALSE}
 sdr_data <- read_csv(here("data/SDR-2023-Data.csv"))
+
+sdr_data <- read_csv(here("data/SDR-2023-Data.csv"))
 ```
 
 Use the `clean_names` function from the janitor package to clean up the column names of our dataframe. 
 
 ```{r}
 sdr_data <- sdr_data %>% 
+  clean_names()
+
+sdr_data <- sdr_data %>%
   clean_names()
 ```
 
@@ -94,12 +104,18 @@ In the following code, we're:
 ```{r}
 ggplot(data = sdr_data, aes(x= goal_3_score, y = goal_4_score)) +
   geom_point()
+
+ggplot(data = sdr_data, aes(x= goal_3_score, y=goal_4_score)) + 
+  geom_point()
 ```
 
 Awesome! What if we wanted to color the points/countries based on their region? Let's use the `color` argument to add some color to do so.
 
 ```{r}
 ggplot(data = sdr_data, aes(x= goal_3_score, y = goal_4_score, color = regions_used_for_the_sdr)) +
+  geom_point()
+
+ggplot(data= sdr_data, aes(x= goal_3_score, y= goal_4_score, color = regions_used_for_the_sdr)) + 
   geom_point()
 ```
 
@@ -124,12 +140,24 @@ Let's create one more scatter plot!
 ```{r}
 ggplot(data = sdr_data, aes(x= goal_3_score, y = goal_4_score, color = goal_5_score)) +
   geom_point()
+
+ggplot(data = sdr_data, aes(x = goal_3_score, y = goal_4_score, color = goal_5_score)) + 
+  geom_point()
 ```
 
 Cool! It seems that the darkest blue points (countries with the lowest SDG 5 scores) tend to have mid-range or low SDG 3 / SDG 4 scores as well. The lightest blue points (countries with the highest SDG 5 scores) tend to have high SDG 3 / SDG 4 scores as well. However, there are several countries that do not follow this trend.
 
 #### <span style="color: red;">Challenge 1</span>
 Create a scatterplot using two different SDG scores. Then, color the points by using a third SDG score. In a couple of sentences, describe what you see.
+
+```{r}
+head(sdr_data) #viewing first few columns to see which to look at
+
+ggplot(data = sdr_data, aes(x = goal_14_score, y = goal_15_score, color = goal_1_score)) + 
+  geom_point()
+```
+
+Comparing goals 14 & 15 and colored by goal 1, there is a loose positive linear relationship between the health of aquatic/marine ecosystems and the health of land ecosystems. As for the color relationship, there doesn't seem to be a clear relationship, it seems pretty random. This plot aimed to investigate if reducing poverty for us humans, sacrificed the well-being of ecosystems for other species.
 
 ### Bar Chart
 
@@ -142,6 +170,8 @@ A bar chart is great for comparing a numeric variable by group.
 ```{r}
 ggplot(sdr_data, aes(x= goal_3_score, y = country)) +
   geom_bar(stat = "identity")
+
+ggplot(sdr_data, aes(x = goal_3_score, y = country)) + geom_bar(stat = "identity")
 ```
 
 
@@ -154,6 +184,9 @@ Hmm... it looks like the country names are hard to read - there are too many of 
 ```{r}
 lac_sdr_data <- sdr_data %>% 
   filter(regions_used_for_the_sdr == "LAC") # filtering for LAC countries only
+
+lac_sdr_data <- sdr_data %>%
+  filter(regions_used_for_the_sdr == "LAC") 
 ```
 
 Now let's make a bar chart from our new dataframe `lac_sdr_data`
@@ -161,6 +194,8 @@ Now let's make a bar chart from our new dataframe `lac_sdr_data`
 ```{r}
 ggplot(lac_sdr_data, aes(x= goal_3_score, y = country)) +
   geom_bar(stat = "identity") 
+
+ggplot(lac_sdr_data, aes(x = goal_3_score, y = country)) + geom_bar(stat = "identity")
 ```
 
 #### Faceted Bar Chart
@@ -182,6 +217,11 @@ ggplot(sdr_data, aes(x= goal_3_score, y = country)) +
   geom_bar(stat = "identity") +
   facet_wrap(~regions_used_for_the_sdr, scales = "free_y") + # faceting for regions
   theme(axis.text.y = element_text(size = 4)) # adjusting text size of y-axis values
+
+ggplot(sdr_data, aes(x = goal_3_score, y = country)) + 
+  geom_bar(stat = "identity") + 
+  facet_wrap(~regions_used_for_the_sdr, scales = "free_y") + 
+  theme(axis.text.y = element_text(size=4))
 ```
 
 Interpretation:
@@ -189,6 +229,15 @@ As we can see in the Oceania region, most Countries do not have the necessary da
 
 #### <span style="color: red;">Challenge 2</span>
 Create a new bar chart with countries only from the MENA region. 
+
+```{r}
+mena_data = sdr_data %>%
+  filter(regions_used_for_the_sdr == "MENA")
+
+ggplot(mena_data, aes(x = goal_3_score, y = country)) + 
+  geom_bar(stat = "identity")
+```
+
 
 ### Histogram
 
@@ -200,6 +249,9 @@ Histograms are awesome at visualizing distributions of a single continuous varia
 
 ```{r}
 ggplot(sdr_data, aes(x = goal_4_score)) +
+  geom_histogram()
+
+ggplot(sdr_data, aes(x = goal_4_score)) + 
   geom_histogram()
 ```
 
@@ -217,6 +269,10 @@ This is great for looking at the distribution of Goal 4 scores, but let's explor
 ```{r}
 ggplot(sdr_data, aes(x = goal_4_score, fill=regions_used_for_the_sdr)) + 
   geom_histogram(bins=33, color="black")
+
+ggplot(sdr_data, aes(x = goal_4_score,
+fill = regions_used_for_the_sdr)) + 
+  geom_histogram(bins = 33, color="black")
 ```
 
 Interpretation:
@@ -224,3 +280,10 @@ Countries that fall in the higher end of the Goal 4 spectrum belong to the OECD 
 
 #### <span style="color: red;">Challenge 3</span>
 Make a histogram for a different SDG score. Then, fill by region. In a couple of sentences, describe any interesting trends or what you notice from your new histogram.
+
+```{r}
+ggplot(sdr_data , aes(x = goal_13_score,
+fill = regions_used_for_the_sdr)) + 
+  geom_histogram(bins = 33, color = "black")
+```
+This is a histogram of goal 13, climate action which weighs actions like integrating climate policies and improving climate issue awareness. It's great to see higher numbers towards the higher score. One interesting note is the little bump of countries with a score of around 68-69%.
