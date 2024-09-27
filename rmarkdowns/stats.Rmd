@@ -29,6 +29,14 @@ library(ggpubr)
 library(janitor)
 library(ggcorrplot)
 library(vembedr)
+
+library(tidyverse)
+library(here)
+library(ggpubr)
+library(janitor)
+library(ggcorrplot)
+library(vembedr)
+library(plotly) #for challenge 1
 ```
 
 
@@ -42,12 +50,17 @@ Read in 2023 Sustainable Development Data with *read_csv()* and *here()*
 
 ```{r, message=FALSE}
 sdr_data <- read_csv(here("data/SDR-2023-Data.csv"))
+
+sdr_data <- read_csv(here("data/SDR-2023-Data.csv"))
 ```
 
 Clean column names with clean_names() from the janitor package
 
 ```{r}
 sdr_data <- sdr_data %>% 
+  clean_names()
+
+sdr_data <- sdr_data %>%
   clean_names()
 ```
 
@@ -59,6 +72,11 @@ ggplot(sdr_data, aes(x = goal_7_score,
                      y = goal_1_score)) +
   geom_point() +
   theme_minimal() 
+
+ggplot(sdr_data, aes(x = goal_7_score, 
+                     y = goal_1_score)) + 
+  geom_point() + 
+  theme_minimal()
 ```
 
 It seems that there is a general trend that countries with higher goal 7 scores also have higher goal 1 scores and vice versa
@@ -78,6 +96,12 @@ ggplot(sdr_data, aes(x = goal_7_score,
   geom_point() +
   geom_smooth() +
   theme_minimal() 
+
+ggplot(sdr_data, aes(x = goal_7_score, 
+                     y = goal_1_score)) + 
+  geom_point() + 
+  geom_smooth() + 
+  theme_minimal()
 ```
 
 Interesting, our line does go up and to the right, indicating a *positive correlation*
@@ -106,6 +130,13 @@ ggplot(sdr_data, aes(x = goal_7_score,
   geom_smooth() +
   stat_cor() +
   theme_minimal() 
+
+ggplot(sdr_data, aes(x = goal_7_score, 
+                     y = goal_1_score)) +
+  geom_point() +
+  geom_smooth() +
+  stat_cor() +
+  theme_minimal()
 ```
 
 Awesome! Now we have a correlation coefficent (R = 0.79) What does this mean?
@@ -140,6 +171,11 @@ sdr_scores <- sdr_data %>%
     goal_11_score, goal_12_score, goal_13_score, goal_14_score, goal_15_score,
     goal_16_score, goal_17_score
   )
+
+sdr_scores <- sdr_data %>%
+  select(
+    goal_1_score, goal_2_score, goal_3_score, goal_4_score, goal_5_score, goal_6_score, goal_7_score, goal_8_score, goal_9_score, goal_10_score, goal_11_score, goal_12_score, goal_13_score, goal_14_score, goal_15_score, goal_16_score, goal_17_score
+  ) #df with scores ONLY
 ```
 
 
@@ -147,11 +183,15 @@ Now, let's create a matrix from the sdr_scores dataframe with the as.matrix() fu
 
 ```{r}
 sdr_scores_matrix <- as.matrix(sdr_scores)
+
+sdr_scores_matrix <- as.matrix(sdr_scores) #creation of matrix object
 ```
 
 Now that we have a matrix, we can calculate the correlation coefficients for each pair of sdg scores and store the object as cor
 
 ```{r}
+cor <- cor(sdr_scores_matrix, use = "complete.obs")
+
 cor <- cor(sdr_scores_matrix, use = "complete.obs")
 ```
 
@@ -163,6 +203,10 @@ Finally, we can plot the correlation coefficients with ggcorrplot!
 ggcorrplot(cor, method = "circle", type = "lower", lab = TRUE, lab_size = 2) +
   theme(axis.text.y = element_text(size = 8),
   axis.text.x = element_text(size = 8))
+
+ggcorrplot(cor, method = "circle", type = "lower", lab = TRUE, lab_size = 2) + 
+  theme(axis.text.y = element_text(size = 8),
+        axis.text.x = element_text(size = 8))
 ```
 
 Interesting! 
@@ -204,6 +248,13 @@ ggplot(sdr_data, aes(x = goal_12_score,
   stat_cor() +
   theme_minimal() 
 
+ggplot(sdr_data, aes(x = goal_12_score,
+                     y = goal_9_score)) + 
+  geom_point() + 
+  geom_smooth() + 
+  stat_cor() + 
+  theme_minimal()
+
 ```
 
 ### <span style="color: red;">Challenge 1</span>
@@ -220,3 +271,18 @@ ggplot(sdr_data, aes(x = goal_12_score,
       - are there any points that don't follow the trend (outliers)
         
         - which country(s) are outliers?
+
+```{r}
+challenge_plot <- ggplot(sdr_data, aes(x = goal_12_score, y = goal_3_score, label = country)) + 
+  geom_point() + 
+  geom_smooth() + 
+  stat_cor(label.x.npc = "left", label.y.npc = "bottom") + #moved the text from stat_cor to the lower left since it was covered by the data points
+  theme_minimal()
+
+ggplotly(challenge_plot)
+
+challenge_plot #couldn't figure out how to fix the text from stat_cor in the interactive plot so I displayed it normally too
+
+```
+
+Here is a plot of goal 12, responsible consumption and production, and goal 3, good health and well-being. A big idea for this that came to mind was resource allocation. If countries focus on being more sustainable with their waste and funding clean, green production that money isn't going to other essential services like healthcare, impacting the health and well-being of communities. There are outliers like Mongolia, sitting in the middle of the plot, not having a great score in either goal. On the other end, the outliers who are doing the best in both is Cuba and Uzbekistan. It's interesting to see the distribution between these relationships as there are indeed sacrifices to be made for clean consuming and producing.
