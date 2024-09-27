@@ -32,6 +32,16 @@ library(rnaturalearth)
 library(leaflet)
 library(sf)
 library(vembedr)
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(janitor)
+library(plotly)
+library(rnaturalearth)
+library(leaflet)
+library(sf)
+library(vembedr)
 ```
 
 ```{r, echo=FALSE}
@@ -44,12 +54,17 @@ Read in 2023 Sustainable Development Data with *read_csv()* and *here()*
 
 ```{r, message=FALSE}
 sdr_data <- read_csv(here("data/SDR-2023-Data.csv"))
+
+sdr_data <- read_csv(here("data/SDR-2023-Data.csv"))
 ```
 
 Clean column names
 
 ```{r}
 sdr_data <- sdr_data %>% 
+  clean_names()
+
+sdr_data <- sdr_data %>%
   clean_names()
 ```
 
@@ -60,6 +75,9 @@ Let's start with the histogram you created last lesson with ggplot() and geom_hi
 
 ```{r, message=FALSE, warning=FALSE}
 ggplot(sdr_data, aes(x = goal_4_score, fill=regions_used_for_the_sdr)) +
+  geom_histogram()
+
+ggplot(sdr_data, aes(x = goal_4_score, fill = regions_used_for_the_sdr)) + 
   geom_histogram()
 ```
 
@@ -80,6 +98,15 @@ ggplot(sdr_data, aes(x = goal_4_score, fill=regions_used_for_the_sdr)) +
   labs(title = "Distributions of SDG 4 Scores",
        x = "SDG 4 Score",
        y = "Number of Countries",
+       fill = "Region")
+
+ggplot(sdr_data, aes(x = goal_4_score, fill = regions_used_for_the_sdr)) + 
+  geom_histogram() + 
+  theme_minimal() +
+  scale_fill_viridis_d() +
+  labs(title = "Distributions of SDG 4 Scores", 
+       x = "SDG 4 Score",
+       y = "Number of Countries", 
        fill = "Region")
   
 ```
@@ -115,6 +142,17 @@ goal_4_histogram <- ggplot(sdr_data, aes(x = goal_4_score, fill=regions_used_for
        fill = "Region")
 
 ggplotly(goal_4_histogram)
+
+goal_4_histogram <- ggplot(sdr_data, aes(x = goal_4_score, fill = regions_used_for_the_sdr)) + 
+  geom_histogram() +
+  theme_minimal() +
+  scale_fill_viridis_d() + 
+  labs(title = "Distributions of SDG 4 Scores",
+       x = "SDG 4 Score",
+       y = "Number of Countries",
+       fill = "Region")
+
+ggplotly(goal_4_histogram)
 ```
 
 
@@ -132,6 +170,17 @@ Here is the code for a scatter plot you made in the last lesson:
 ```{r, warning = FALSE}
 ggplot(data = sdr_data, aes(x= goal_3_score, y = goal_4_score, color = regions_used_for_the_sdr)) +
   geom_point()
+
+scatter_goal_3and4 <- ggplot(sdr_data, aes(x = goal_3_score, y = goal_4_score, color = regions_used_for_the_sdr)) +
+  geom_point() +
+  theme_minimal() +
+  scale_fill_viridis_d() +
+  labs(title = "SDG Goals 3 & 4 by region",
+       x = "Goal 3 Score",
+       y = "Goal 4 Score",
+       color = "Region")
+
+ggplotly(scatter_goal_3and4) #for the second plot, why are the names like ([name], 1)
 ```
 
 *Edit the code chunk above* that generates the plot to:
@@ -161,6 +210,8 @@ This takes a few fun steps to do
 
 ```{r}
 world <- ne_countries(scale = "medium", returnclass = "sf")
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
 ```
 
 - Now we have a dataframe named *world* in our environment
@@ -179,6 +230,8 @@ Let's select the three columns we are interested, making the dataframe much smal
 ```{r}
 world <- world %>% 
   select(name_long, iso_a3, geometry)
+world <- world %>%
+  select(name_long, iso_a3, geometry)
 ```
 
 We're almost ready to join these dataframes
@@ -193,6 +246,8 @@ Let's change the column in sdr_data called country_code_iso3 to iso_a3 to match 
 ```{r}
 # Rename a column in a data frame or matrix
 colnames(sdr_data)[which(colnames(sdr_data) == "country_code_iso3")] <- "iso_a3"
+
+colnames(sdr_data)[which(colnames(sdr_data) == "country_code_iso3")] <- "iso_a3" #first column is now iso_a3 instead of country_code_iso3
 ```
 
 Perfect! Now we can join
@@ -212,6 +267,8 @@ Let's use the `left_join()` function
 
 ```{r}
 sdr_data_world_joined <- left_join(sdr_data, world, by = "iso_a3")
+
+sdr_data_world_joined <- left_join(sdr_data, world, by = "iso_a3")
 ```
 
 Nice!
@@ -220,11 +277,15 @@ The next 4 code chunks are slightly technical regarding the class of sdr_data_wo
 
 ```{r}
 class(sdr_data_world_joined)
+
+class(sdr_data_world_joined)
 ```
 
 Right now, sdr_data_world_joined is a dataframe. In order to use the `leaflet` package that generates the map, we need sdr_data_world_joined to be an sf dataframe. sf stands for spatial features. Converting sdr_data_world_joined to class *sf dataframe* is easy with the `st_as_sf()` function and it allows leaflet to interpret the geometry column as something it can map
 
 ```{r}
+sdr_data_world_joined <- st_as_sf(sdr_data_world_joined)
+
 sdr_data_world_joined <- st_as_sf(sdr_data_world_joined)
 ```
 
@@ -232,6 +293,8 @@ Now lets check the class again to make sure sdr_data_world_joined is of class sf
 
 ```{r}
 class(sdr_data_world_joined)
+
+class(sdr_data_world_joined) #is now sf dataframe
 ```
 
 The last step before mapping with leaflet is specifying a coordinate reference system (crs). There are many different coordinate refernece systmes, and here we choose WGS84
@@ -239,6 +302,8 @@ The last step before mapping with leaflet is specifying a coordinate reference s
 - WGS84 stands for World Geodetic System 1984. It's a global standard for measuring locations on Earth's surface. WGS84 defines a coordinate system using longitude and latitude coordinates, where longitude measures east-west position and latitude measures north-south position. This system is widely used in GPS (Global Positioning System) devices, mapping applications, and geographic information systems (GIS) because it provides a consistent and accurate way to represent locations anywhere on Earth.
 
 ```{r}
+sdr_data_world_joined <- st_transform(sdr_data_world_joined, "+proj=longlat +datum=WGS84")
+
 sdr_data_world_joined <- st_transform(sdr_data_world_joined, "+proj=longlat +datum=WGS84")
 ```
 
@@ -263,10 +328,35 @@ leaflet(sdr_data_world_joined) %>%
   addTiles()  %>% 
   setView( lat=10, lng=0 , zoom=2) %>%
   addPolygons(stroke = FALSE, fillOpacity = 0.5, smoothFactor = 0.5, color = ~colorQuantile("YlOrRd", goal_7_score)(goal_7_score), label = mytext)
+
+mytext <- paste(
+  "Country: ", sdr_data_world_joined$country, "<br/>",
+  "Goal 7 Score: ", round(sdr_data_world_joined$goal_7_score, 2),
+  sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(sdr_data_world_joined) %>%
+  addTiles() %>%
+  setView(lat = 10, lng = 0, zoom = 2) %>%
+  addPolygons(stroke = FALSE, fillOpacity = 0.5, smoothFactor = 0.5, color = 
+~colorQuantile("YlOrRd", goal_7_score)(goal_7_score), label = mytext)
 ```
 #### <span style="color: red;">Challenge 2</span>
 
 Can you edit the code chunk above that generates the map to:
+```{r}
+#I want to look at Goal 9: Industry, Innovation, and Infrastructure
+mytext <- paste(
+    "Country: ", sdr_data_world_joined$country,"<br/>", 
+    "Goal 9 Score: ", round(sdr_data_world_joined$goal_9_score, 2), 
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(sdr_data_world_joined) %>% 
+  addTiles()  %>% 
+  setView( lat=10, lng=0 , zoom=2) %>%
+  addPolygons(stroke = FALSE, fillOpacity = 0.5, smoothFactor = 0.5, color = ~colorQuantile("YlGn", goal_9_score)(goal_9_score), label = mytext) #chose YlGn color palette
+```
 
 - Map a different sdg score
 - Change the color palette from "YlOrRd" to another palette
