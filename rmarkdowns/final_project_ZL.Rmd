@@ -1,0 +1,59 @@
+# Zach's Final Project for the United Nations Sustainable Development Goals
+
+```{r}
+library(tidyverse)
+library(rnaturalearth)
+library(here)
+library(janitor)
+library(plotly)
+library(leaflet)
+library(sf)
+```
+
+Country/SDG of focus: SDG 7 - Affordable and Clean Energy
+
+```{r}
+#load in sdr data and clean
+sdr_data <- read_csv(here("data/SDR-2023-Data.csv"))
+
+sdr_data <- sdr_data %>%
+  clean_names()
+```
+
+### Global Distribution Map of SDG 7
+
+```{r}
+#using setup techniques learned in advanced viz lesson
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+world <- world %>%
+  select(name_long, iso_a3, geometry)
+
+colnames(sdr_data)[which(colnames(sdr_data) == "country_code_iso3")] <- "iso_a3"
+
+#combine dataframes
+sdr_data_world_joined <- left_join(sdr_data, world, by = "iso_a3")
+
+#convert to sf dataframe
+sdr_data_world_joined <- st_as_sf(sdr_data_world_joined)
+
+#specify crs
+sdr_data_world_joined <- st_transform(sdr_data_world_joined, "+proj=longlat +datum=WGS84")
+
+```
+
+```{r}
+#plot sdg7 map
+mytext <- paste(
+    "Country: ", sdr_data_world_joined$country,"<br/>", 
+    "Goal 7 Score: ", round(sdr_data_world_joined$goal_7_score, 2), 
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(sdr_data_world_joined) %>% 
+  addTiles()  %>% 
+  setView(lat=10, lng=0 , zoom=2) %>%
+  addPolygons(stroke = FALSE, fillOpacity = 0.5, smoothFactor = 0.5, color = ~colorQuantile("PRGn", goal_7_score)(goal_7_score), label = mytext)
+ 
+```
+
