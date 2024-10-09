@@ -8,6 +8,7 @@ library(janitor)
 library(plotly)
 library(leaflet)
 library(sf)
+library(ggplot2)
 ```
 
 Country/SDG of focus: SDG 7 - Affordable and Clean Energy
@@ -55,5 +56,28 @@ leaflet(sdr_data_world_joined) %>%
   setView(lat=10, lng=0 , zoom=2) %>%
   addPolygons(stroke = FALSE, fillOpacity = 0.5, smoothFactor = 0.5, color = ~colorQuantile("PRGn", goal_7_score)(goal_7_score), label = mytext)
  
+```
+
+This is a map displaying the distribution of SDG 7 scores. High SDG 7 scores are indicated in dark green while low SDG 7 scores are indicated by dark purple. Off the bat, it seems like the map is split into two parts. The majority of the left side is green with a handful of purple outliers, this part includes Europe as well. The opposite is true for the right side of the map, including Africa. 
+
+
+I want to see the top and bottom 5 for this score.
+```{r}
+top_5 <- sdr_data[order(-sdr_data$goal_7_score), ][1:5, ]
+
+bottom_5 <- sdr_data[order(sdr_data$goal_7_score), ][1:5, ]
+
+ggplot(top_5, aes(y = reorder(country, goal_7_score), x = goal_7_score)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top 5 SDG 7 Countries",
+       x = "SDG 7 Score",
+       y = "Country")
+  theme_minimal()
+  
+ggplot(bottom_5, aes(y = reorder(country, -goal_7_score), x = goal_7_score)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Bottom 5 SDG 7 Countries",
+       x = "SDG 7 Score",
+       y = "Country")
 ```
 
