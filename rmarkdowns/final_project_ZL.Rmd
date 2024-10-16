@@ -59,10 +59,11 @@ leaflet(sdr_data_world_joined) %>%
   addPolygons(stroke = FALSE, fillOpacity = 0.5, smoothFactor = 0.5, color = ~colorQuantile("PRGn", goal_7_score)(goal_7_score), label = mytext)
  
 ```
-This is a map displaying the distribution of SDG 7 scores. High SDG 7 scores are indicated in dark green while low SDG 7 scores are indicated by dark purple. Off the bat, it seems like the map is split into two parts. The majority of the left side is green with a handful of purple outliers, this part includes Europe as well. The opposite is true for the right side of the map, including Africa. 
 
+This is a map displaying the distribution of SDG 7 scores. High SDG 7 scores are indicated in dark green while low SDG 7 scores are indicated by dark purple. Off the bat, it seems like the map is split into two parts. The majority of the left side is green with a handful of purple outliers, this part includes Europe as well. The opposite is true for the right side of the map, including Africa.
 
 I want to see the top and bottom 5 for this score.
+
 ```{r}
 top_5 <- sdr_data[order(-sdr_data$goal_7_score), ][1:5, ]
 
@@ -82,6 +83,7 @@ ggplot(bottom_5, aes(y = reorder(country, -goal_7_score), x = goal_7_score)) +
        y = "Country") +
   theme_minimal()
 ```
+
 These two bar graphs display the top and bottom 5 countries for this SDG score. Four out of five countries are a part of Europe, with the exception of Uruguay with scores ranging from 93.0 to 99.6. On the other hand, all bottom five countries are located within Africa. According to the UN's SDG Report from 2023, 675 million people still lack access to electricity, 80% of those are in Sub-Saharan Africa. Iʻd like to investigate the indicators for this SDG to see what factors influence affordable and clean energy the most. First, let's create a correlation matrix and compare with other scores.
 
 ```{r}
@@ -96,6 +98,7 @@ ggcorrplot(cor, method = "circle", type = "lower", lab = TRUE, lab_size = 2) +
   theme(axis.text.y = element_text(size = 8),
         axis.text.x = element_text(size = 8))
 ```
+
 Let's explore this further with some regression plots. The two highest goals that correlate to SDG 7 are goal 3 (0.86) and goal 11 (0.79).
 
 ```{r}
@@ -106,6 +109,11 @@ ggplot(sdr_data, aes(x = goal_7_score, y = goal_3_score, color = regions_used_fo
   geom_smooth(aes(group = 1), color = "black") +
   theme_minimal()
 ```
-From the correlation matrix and this regression plot, goal 3 is has a strong, positive relationship with our goal of interest, goal 7. Goal 3 is defined by the UN as Good Health and Well-being. First, when analyzing the data by region, we can see that Sub-Saharan Africa occupies a large cluster on the bottom left of the chart with both low goal 7 and goal 3 scores, with a handful of outliers. Occupying the middle portion of the graph is East & South Asia shown in brown. On the other side of the chart is a tight cluster of the remaining regions with the OECD grouping the highest.
 
+From the correlation matrix and this regression plot, goal 3 is has a strong, positive relationship with our goal of interest, goal 7. Goal 3 is defined by the UN as Good Health and Well-being. First, when analyzing the data by region, we can see that Sub-Saharan Africa occupies a large cluster on the bottom left of the chart with both low goal 7 and goal 3 scores, with a handful of outliers. Occupying the middle portion of the graph is East & South Asia shown in brown. On the other side of the chart is a tight cluster of the remaining regions with the OECD grouping the highest.This sparked a question of why would these two goals be related to each other? My initial hypothesis is regions whose population is exposed to more fossil fuel based energy sources, experience more health problems, and vice versa. Let's investigate what indicators could be causing this.
+
+```{r}
+
+
+```
 
