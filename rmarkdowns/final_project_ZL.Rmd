@@ -1,3 +1,8 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
 # Zach's Final Project for the United Nations Sustainable Development Goals
 
 ```{r}
@@ -11,6 +16,10 @@ library(sf)
 library(ggplot2)
 library(ggpubr)
 library(ggcorrplot)
+library(randomForest) # runs random forest algorithm
+library(missRanger) # imputes data through with random forest method
+library(factoextra) # visualizes clusters
+library(naniar)
 ```
 
 Country/SDG of focus: SDG 7 - Affordable and Clean Energy
@@ -88,9 +97,9 @@ These two bar graphs display the top and bottom 5 countries for this SDG score. 
 
 ```{r}
 sdr_scores <- sdr_data %>%
-  select(goal_1_score, goal_2_score, goal_3_score, goal_4_score, goal_5_score, goal_6_score, goal_7_score, goal_8_score, goal_9_score, goal_10_dash, goal_11_score, goal_12_score, goal_13_score, goal_14_score, goal_15_score, goal_16_score, goal_17_score)
+  select(goal_1_score, goal_2_score, goal_3_score, goal_4_score, goal_5_score, goal_6_score, goal_7_score, goal_8_score, goal_9_score, goal_10_score, goal_11_score, goal_12_score, goal_13_score, goal_14_score, goal_15_score, goal_16_score, goal_17_score)
 
-sdr_scores_maxtrix <- as.matrix(sdr_scores)
+sdr_scores_matrix <- as.matrix(sdr_scores)
 
 cor <- cor(sdr_scores_matrix, use = "complete.obs")
 
@@ -113,7 +122,84 @@ ggplot(sdr_data, aes(x = goal_7_score, y = goal_3_score, color = regions_used_fo
 From the correlation matrix and this regression plot, goal 3 is has a strong, positive relationship with our goal of interest, goal 7. Goal 3 is defined by the UN as Good Health and Well-being. First, when analyzing the data by region, we can see that Sub-Saharan Africa occupies a large cluster on the bottom left of the chart with both low goal 7 and goal 3 scores, with a handful of outliers. Occupying the middle portion of the graph is East & South Asia shown in brown. On the other side of the chart is a tight cluster of the remaining regions with the OECD grouping the highest.This sparked a question of why would these two goals be related to each other? My initial hypothesis is regions whose population is exposed to more fossil fuel based energy sources, experience more health problems, and vice versa. Let's investigate what indicators could be causing this.
 
 ```{r}
+#first let's impute our data from ML lesson
+sdr_data_normalized_scores <- sdr_data %>%
+  select(country, contains("normalized_score"))
 
+sdr_data_normalized_scores_longer <- sdr_data_normalized_scores %>% 
+  pivot_longer(cols = !country)
+
+missing_data_by_country <- sdr_data_normalized_scores_longer %>%
+  group_by(country) %>%
+  miss_var_summary() %>%
+  arrange(desc(pct_miss))
+
+completely_na_countries  <- missing_data_by_country$country[missing_data_by_country$pct_miss == 100]
+
+sdr_data_normalized_scores_no_na_countries <- sdr_data_normalized_scores %>% 
+  filter(!country %in% completely_na_countries)
+
+sdr_data_normalized_scores_less_na <- sdr_data_normalized_scores_no_na_countries %>%
+  select(where(~ sum(is.na(.))/length(.) <= 0.2))
+sdr_data_imputed <- missRanger(sdr_data_normalized_scores_less_na)
 
 ```
+Here's a list of sdg7 & sdg3 indicators:
+```{r}
+goal7_indicators <- sdr_data_imputed %>%
+  select(country, contains("normalized_score_sdg7"))
+print(colnames(goal7_indicators))
 
+cat("\n")
+
+goal3_indicators <- sdr_data_imputed %>%
+  select(country, contains("normalized_score_sdg3"))
+print(colnames(goal3_indicators))
+```
+Focusing on sdg7_cleanfuel, let's implement randomForest
+```{r}
+rf_cleanfuel <- randomForest(normalized_score_sdg7_cleanfuel ~ .,
+                             data = sdr_data_imputed,
+                             importance = TRUE)
+
+importance_cleanfuel_df <- as.data.frame(rf_cleanfuel$importance)
+importance_cleanfuel_df_5 <- importance_cleanfuel_df %>%
+  rownames_to_column(var = "variable") %>%
+  slice_max(n = 5, order_by = `%IncMSE`)
+
+ggplot(importance_cleanfuel_df_5, aes(x = `%IncMSE`, y = reorder(variable, `%IncMSE`))) +
+  geom_bar(stat = "identity", fill = "#449C00", color = "black") +
+  theme_minimal() +
+  labs(title = "Most Important Variables in Predicting Clean Fuel",
+       subtitle = "Top 5",
+       y = "SDG Indicator",
+       x = "Feature Importance (% Increase in Mean Squared Error)")
+```
+Here's the importance of the top 5 indicators, the top being sdg3_pollmort. This variable is target 3.9. According to the UN, the goal is to reduce the number of deaths/illness from hazardous chemicals and environmental pollution by 2030. This shows that the top factor that influences sdg7_cleanfuel which is a measure of access to clean cooking fuels. Going off of my initial hypothesis, this does line up and make sense. Cooking the food we consume is one of humanities' essential practices, making raw meat safer to eat so when cooking multiple times a day, we must be mindful of the fuels we use. Fuels that pollute include wood, other biomass, charcoal, and dung. Unfortunately, 2.1 billion people worldwide still lack access to clean cooking(WHO, 2022). Chronic exposure to the combustion of these fuels increase the risk of heart disease, stroke, cancers, and lung disease. Additionally, women and children in low income countries are disproportionately affected by this issue. 
+
+I wanna make one more plot showing clusters of countries, emphasizing the difference between low income to high income countries. When trying to cluster, instead of using the imputed data from before, I'm going to use the data from earlier to only include sdg7 to try and have clusters relating to only that sdg. Not sure if this affects the integrity of the data but I'll try it anyway.
+
+```{r}
+
+goal7_indicators <- goal7_indicators %>%
+  remove_rownames %>%
+  column_to_rownames(var = "country")
+
+fviz_nbclust(goal7_indicators, kmeans, method = "silhouette")
+```
+
+Two clusters are suggested again.
+
+```{r}
+k2 <- kmeans(goal7_indicators, centers = 2)
+
+fviz_cluster(k2, data = goal7_indicators) +
+  theme_minimal()
+
+country_clusters <- as.data.frame(k2$cluster)
+
+new_country_clusters <- country_clusters
+new_country_clusters$Country <- rownames(country_clusters)
+rownames(new_country_clusters) <- NULL
+```
+In this cluster map, we have two clusters formed from our data. 
