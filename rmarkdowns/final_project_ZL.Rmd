@@ -1,11 +1,14 @@
 ---
-output:
-  html_document: default
-  pdf_document: default
+title: "Final Project"
+author: "Zachary Loo"
+date: "10/17/2024"
+output: html_document
+ 
 ---
+
 # Zach's Final Project for the United Nations Sustainable Development Goals
 
-```{r}
+```{r setup, include=FALSE}
 library(tidyverse)
 library(rnaturalearth)
 library(here)
@@ -20,6 +23,8 @@ library(randomForest) # runs random forest algorithm
 library(missRanger) # imputes data through with random forest method
 library(factoextra) # visualizes clusters
 library(naniar)
+library(gridExtra)
+library(knitr)
 ```
 
 Country/SDG of focus: SDG 7 - Affordable and Clean Energy
@@ -69,31 +74,37 @@ leaflet(sdr_data_world_joined) %>%
  
 ```
 
-This is a map displaying the distribution of SDG 7 scores. High SDG 7 scores are indicated in dark green while low SDG 7 scores are indicated by dark purple. Off the bat, it seems like the map is split into two parts. The majority of the left side is green with a handful of purple outliers, this part includes Europe as well. The opposite is true for the right side of the map, including Africa.
+This is a map displaying the distribution of SDG 7 scores. High SDG 7 scores are indicated in dark green while low SDG 7 scores are indicated by dark purple. Off the bat, it seems like the map is split into two parts. The majority of the left side is green with a handful of purple outliers, this part includes Europe as well. The opposite is true for the right side of the map, including Africa. From this map, it is interesting to see how the US, one of the wealthiest countries by GDP, compares to other countries. A cool outlier to investigate would be the darkest green country located in Africa, Gabon who is scoring 12 points higher than the US in the SDG goal. Next, I want to see the top and bottom 5 for this score.
 
-I want to see the top and bottom 5 for this score.
+### Top and Bottom 5 SDG7
 
 ```{r}
 top_5 <- sdr_data[order(-sdr_data$goal_7_score), ][1:5, ]
 
 bottom_5 <- sdr_data[order(sdr_data$goal_7_score), ][1:5, ]
 
-ggplot(top_5, aes(y = reorder(country, goal_7_score), x = goal_7_score)) +
+p1 <- ggplot(top_5, aes(y = reorder(country, goal_7_score), x = goal_7_score)) +
   geom_bar(stat = "identity") +
   labs(title = "Top 5 SDG 7 Countries",
        x = "SDG 7 Score",
        y = "Country") +
   theme_minimal()
-  
-ggplot(bottom_5, aes(y = reorder(country, -goal_7_score), x = goal_7_score)) +
+
+
+p2 <- ggplot(bottom_5, aes(y = reorder(country, -goal_7_score), x = goal_7_score)) +
   geom_bar(stat = "identity") +
   labs(title = "Bottom 5 SDG 7 Countries",
        x = "SDG 7 Score",
        y = "Country") +
   theme_minimal()
+
+# combine the plots
+grid.arrange(p1, p2, ncol = 2)
 ```
 
-These two bar graphs display the top and bottom 5 countries for this SDG score. Four out of five countries are a part of Europe, with the exception of Uruguay with scores ranging from 93.0 to 99.6. On the other hand, all bottom five countries are located within Africa. According to the UN's SDG Report from 2023, 675 million people still lack access to electricity, 80% of those are in Sub-Saharan Africa. Iʻd like to investigate the indicators for this SDG to see what factors influence affordable and clean energy the most. First, let's create a correlation matrix and compare with other scores.
+These two bar graphs display the top and bottom 5 countries for this SDG score. Four out of five countries are a part of Europe, with the exception of Uruguay with scores ranging from 93.0 to 99.6. On the other hand, all bottom five countries are located within Africa. Still, it's interesting to see how the US doesn't come close to doing as well in this SDG score but the top 5 countries don't come close to the US' GDP. According to the UN's SDG Report from 2023, 675 million people still lack access to electricity, 80% of those are in Sub-Saharan Africa. Iʻd like to investigate the indicators for this SDG to see what factors influence affordable and clean energy the most. First, let's create a correlation matrix and compare with other scores.
+
+### SDG scores correlation
 
 ```{r}
 sdr_scores <- sdr_data %>%
@@ -108,7 +119,9 @@ ggcorrplot(cor, method = "circle", type = "lower", lab = TRUE, lab_size = 2) +
         axis.text.x = element_text(size = 8))
 ```
 
-Let's explore this further with some regression plots. The two highest goals that correlate to SDG 7 are goal 3 (0.86) and goal 11 (0.79).
+Let's explore this further with a regression plot. The two highest goals that correlate to SDG 7 are goal 3 (0.86) and goal 11 (0.79).
+
+### Goal 7&3 Regression
 
 ```{r}
 ggplot(sdr_data, aes(x = goal_7_score, y = goal_3_score, color = regions_used_for_the_sdr)) +
@@ -119,7 +132,7 @@ ggplot(sdr_data, aes(x = goal_7_score, y = goal_3_score, color = regions_used_fo
   theme_minimal()
 ```
 
-From the correlation matrix and this regression plot, goal 3 is has a strong, positive relationship with our goal of interest, goal 7. Goal 3 is defined by the UN as Good Health and Well-being. First, when analyzing the data by region, we can see that Sub-Saharan Africa occupies a large cluster on the bottom left of the chart with both low goal 7 and goal 3 scores, with a handful of outliers. Occupying the middle portion of the graph is East & South Asia shown in brown. On the other side of the chart is a tight cluster of the remaining regions with the OECD grouping the highest.This sparked a question of why would these two goals be related to each other? My initial hypothesis is regions whose population is exposed to more fossil fuel based energy sources, experience more health problems, and vice versa. Let's investigate what indicators could be causing this.
+From the correlation matrix and this regression plot, goal 3 is has a strong, positive relationship with our goal of interest, goal 7. Goal 3 is defined by the UN as Good Health and Well-being. First, when analyzing the data by region, we can see that Sub-Saharan Africa occupies a large cluster on the bottom left of the chart with both low goal 7 and goal 3 scores, with a handful of outliers. Occupying the middle portion of the graph is East & South Asia shown in brown. On the other side of the chart is a tight cluster of the remaining regions with the OECD grouping the highest. This sparked a question of why would these two goals be related to each other? My initial hypothesis is regions whose population is exposed to more fossil fuel based energy sources, experience more health problems, and vice versa. Let's investigate what indicators could be causing this.
 
 ```{r}
 #first let's impute our data from ML lesson
@@ -144,7 +157,9 @@ sdr_data_normalized_scores_less_na <- sdr_data_normalized_scores_no_na_countries
 sdr_data_imputed <- missRanger(sdr_data_normalized_scores_less_na)
 
 ```
+
 Here's a list of sdg7 & sdg3 indicators:
+
 ```{r}
 goal7_indicators <- sdr_data_imputed %>%
   select(country, contains("normalized_score_sdg7"))
@@ -156,7 +171,11 @@ goal3_indicators <- sdr_data_imputed %>%
   select(country, contains("normalized_score_sdg3"))
 print(colnames(goal3_indicators))
 ```
+
 Focusing on sdg7_cleanfuel, let's implement randomForest
+
+### Indicators influencing sdg7_clean_fuel
+
 ```{r}
 rf_cleanfuel <- randomForest(normalized_score_sdg7_cleanfuel ~ .,
                              data = sdr_data_imputed,
@@ -175,7 +194,8 @@ ggplot(importance_cleanfuel_df_5, aes(x = `%IncMSE`, y = reorder(variable, `%Inc
        y = "SDG Indicator",
        x = "Feature Importance (% Increase in Mean Squared Error)")
 ```
-Here's the importance of the top 5 indicators, the top being sdg3_pollmort. This variable is target 3.9. According to the UN, the goal is to reduce the number of deaths/illness from hazardous chemicals and environmental pollution by 2030. This shows that the top factor that influences sdg7_cleanfuel which is a measure of access to clean cooking fuels. Going off of my initial hypothesis, this does line up and make sense. Cooking the food we consume is one of humanities' essential practices, making raw meat safer to eat so when cooking multiple times a day, we must be mindful of the fuels we use. Fuels that pollute include wood, other biomass, charcoal, and dung. Unfortunately, 2.1 billion people worldwide still lack access to clean cooking(WHO, 2022). Chronic exposure to the combustion of these fuels increase the risk of heart disease, stroke, cancers, and lung disease. Additionally, women and children in low income countries are disproportionately affected by this issue. 
+
+Here's the importance of the top 5 indicators, the top being sdg3_pollmort. This variable is target 3.9 within SDG 3. According to the UN, the goal is to reduce the number of deaths/illness from hazardous chemicals and environmental pollution by 2030. This shows the top factor that influences sdg7_cleanfuel which is a measure of access to clean cooking fuels. Going off of my initial hypothesis, this does line up and make sense. Cooking the food we consume is one of humanities' essential practices, making raw meat safer to eat so when cooking multiple times a day, we must be mindful of the fuels we use. Fuels that pollute include wood, other biomass, charcoal, and dung. Unfortunately, 2.1 billion people worldwide still lack access to clean fuels for cooking(WHO, 2022). Chronic exposure to the combustion of these fuels increase the risk of heart disease, stroke, cancers, and lung disease. Additionally, women and children in low income countries are disproportionately affected by this issue.
 
 I wanna make one more plot showing clusters of countries, emphasizing the difference between low income to high income countries. When trying to cluster, instead of using the imputed data from before, I'm going to use the data from earlier to only include sdg7 to try and have clusters relating to only that sdg. Not sure if this affects the integrity of the data but I'll try it anyway.
 
@@ -190,6 +210,8 @@ fviz_nbclust(goal7_indicators, kmeans, method = "silhouette")
 
 Two clusters are suggested again.
 
+### Cluster plot
+
 ```{r}
 k2 <- kmeans(goal7_indicators, centers = 2)
 
@@ -202,4 +224,56 @@ new_country_clusters <- country_clusters
 new_country_clusters$Country <- rownames(country_clusters)
 rownames(new_country_clusters) <- NULL
 ```
-In this cluster map, we have two clusters formed from our data. 
+
+In this cluster map, we have two clusters formed from our data. Although hard to read, we can see the difference between the two clusters. On the left, we can make out country names like Iceland, Denmark, Finland, and more. On the right, we can see Nigeria, Tanzania, South Sudan and more. The overall trend that underlies SDG 7 seems to be how wealthy the country is. This makes sense as you're not going to have access to clean fuel and renewable forms of energy if you can't afford it. Like other things, money does seem to buy access to these luxuries. At the very least, everyone should be able to access and utilize clean forms of fuel. To wrap it up, we'll look at the distribution of trends to see what the future of this SDG will look like.
+
+### Trend Map(s)
+
+```{r}
+#Consulted chatgpt for this part
+getTrendColor <- function(trend) {
+  if (trend == "↑") {         
+    return("green")
+  } else if (trend == "➚") {  
+    return("orange")
+  } else if (trend == "→") {  
+    return("red")
+  } else {
+    return("gray")            # Default color for any unexpected value
+  }
+}
+
+
+
+# Apply the color function, must use world_joined df for the map 
+sdr_data_world_joined$trend_color <- sapply(sdr_data_world_joined$goal_7_trend, getTrendColor)
+
+#create text
+mytext <- paste(
+  "Country: ", sdr_data_world_joined$country, "<br/>", 
+  "Goal 7 Trend: ", sdr_data_world_joined$goal_7_trend, "<br/>",
+  "Color: ", sdr_data_world_joined$trend_color,
+  sep=""
+) %>%
+  lapply(htmltools::HTML)
+
+# Create map with the trend colors
+leaflet(sdr_data_world_joined) %>% 
+  addTiles() %>% 
+  setView(lat=10, lng=0, zoom=2) %>%
+  addPolygons(stroke = TRUE, fillOpacity = 0.3, smoothFactor = 0.5, 
+              fillColor = ~trend_color,
+              weight = 1,                  # Border thickness
+              label = mytext)
+```
+
+I really tried to figure this out but I couldn't get the colors to show up so here's a png of the image from the sdgindex website instead (<https://dashboards.sdgindex.org/map/goals/SDG7/trends>)
+
+```{r}
+
+sdg7_trendmap <- (here("data/SDR-2024-affordable-and-clean-energy.png"))
+
+include_graphics(sdg7_trendmap)
+```
+
+For global trends in SDG7, there is a lot of yellow and orange countries either Moderately improving or stagnating respectively. Compared to those who are on track or have achieved the goal, indicated in green, there are a only handful of countries. This says a lot about the state of the world and how difficult it is to make the switch over to sustainable, renewable forms of energy. Our world simply relies too heavily on the use of fossil fuels. This comes to no surprise considering how large oil and gas companies are and how much influence they have over the global supply of energy. It also should be mentioned that implementing renewable forms of energy and its infrastructure is definitely a difficult task. These ways of getting energy and sustaining large populations are simply not as efficient and not as cheap. While the majority of trends consist of moderately improving or stagnating, it'd be great to see more countries turn green in the near future as we lean off of fossil fuels and implement more policy pushing for renewable ways to power our globe.
